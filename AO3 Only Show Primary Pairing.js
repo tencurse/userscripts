@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Ao3 Only Show Primary Pairing (Auto)
 // @namespace    tencurse
-// @version      1.0
+// @version      1.01
 // @description  Hides works where specified pairing isn't the first listed.
 // @author       tencurse
 // @match        *://archiveofourown.org/*
