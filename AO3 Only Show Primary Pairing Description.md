@@ -26,13 +26,13 @@ To work with Neeve's original script behaviour of manually adding tags, see [Adv
 
 ## Advanced configuration
 
-To make the primary pairing feature work on a non-ship tag, add the ship names in the `relationships` variable array, separated by commas, like so:
+To make the primary pairing feature work on a non-ship tag page, add the ship names in the `relationships` variable array, separated by commas, like so:
 
 ```js
 var relationships = ["Himeko/Kafka (Honkai: Star Rail)", "Lucina/Serena | Severa"];
 ```
 
-To make the primary character feature work on a non-chracter tag, add the ship names in the `characters` variable array, separated by commas, like so:
+To make the primary character feature work on a non-chracter tag page, add the ship names in the `characters` variable array, separated by commas, like so:
 
 ```js
 var characters = ["Wyll (Baldur's Gate)", "Tartaglia | Childe (Genshin Impact)"];
