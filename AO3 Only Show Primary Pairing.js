@@ -1,24 +1,30 @@
 // ==UserScript==
 // @name         Ao3 Only Show Primary Pairing (Auto)
 // @namespace    tencurse
-// @version      1.01
+// @version      1.10
 // @description  Hides works where specified pairing isn't the first listed.
 // @author       tencurse
 // @match        *://archiveofourown.org/*
 // @match        *://www.archiveofourown.org/*
 // @grant        none
+// @license      MIT
 // ==/UserScript==
 
-var relpad = 1;
+/* START CONFIG */
+// enable auto-detection for primary characters. disabled by default
+const detectPrimaryCharacter = false;
+
 // you want to see at least one of your relationships within this many relationship tags
-
-var charpad = 5;
+var relpad = 1;
 // you want to see at least one of your characters within this many character tags
+var charpad = 5;
 
-/* END CONFIG */
-
+// MANUAL CONFIGURATION
+// add relationship/character tags inside quotation marks "", separated by commas
 var relationships = [];
 var characters = [];
+
+/* END CONFIG */
 
 (function ($) {
   $("<style>")
@@ -29,12 +35,32 @@ var characters = [];
 
   var checkfandom = document.createElement("div");
   var fandomlink = $("h2.heading a")[0].href;
-  var rel = $("h2.heading a")[0].innerText;
-  if (rel.includes("/") || rel.includes("&")) {
-    relationships.push(rel);
-  } else {
+
+  var tagName = $("h2.heading a")[0].innerText;
+
+  // if tag is a relationship tag, add to relationships array
+  if (tagName.includes("/") || tagName.includes("&")) {
+    relationships.push(tagName);
+  } else if (detectPrimaryCharacter) {
+    // if not a ship tag, check if tag is a fandom tag
+    // below only checks the first fandom tag on the first work of the page
+    const fandomName = $("div.header.module > h5.fandoms > a.tag")[0].innerText;
+    // if tag is not the same as the fandom name
+    if (tagName != fandomName) {
+      characters.push(tagName);
+      // if tag is same as fandom name and character array has no value, terminate script
+    } else if (characters.length == 0) {
+      return;
+    }
+    // if character detection is false and both arrays are empty, terminate script
+  } else if (
+    !detectPrimaryCharacter &&
+    characters.length == 0 &&
+    relationships.length == 0
+  ) {
     return;
   }
+
   fandomlink = fandomlink.slice(fandomlink.indexOf("tags"));
   $(checkfandom).load("/" + fandomlink + " .parent", function () {
     if ($("ul", checkfandom).text() == "No Fandom") {
