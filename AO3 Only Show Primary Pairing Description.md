@@ -45,3 +45,10 @@ Both manual configurations will work in tandem with auto-detection features (if 
 ## Credits
 
 See Neeve's original script [here](https://greasyfork.org/en/scripts/377386-ao3-only-show-primary-pairing).
+
+## To do
+
+- [ ] Rewrite code to use vanilla JS, no jQuery
+- [ ] Edit primary ship to recognize ones that don't include the fandom name
+- [ ] Edit primary characters to recognize ones that don't include the fandom name
+- [ ] Use local storage + add UI in AO3 to remove the need for manual code editing
