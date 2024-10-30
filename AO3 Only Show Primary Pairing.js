@@ -107,7 +107,8 @@ const characters = []; // Add character tags here
 
             // Check if the third <p> tag contains "Additional Tags Category"
             const pElements = doc.querySelectorAll("p");
-            if (pElements[2] && pElements[2].textContent.includes("Additional Tags Category")) {
+            if (pElements[2] && pElements[2].textContent.includes("Additional Tags Category") ||
+               (pElements[3] && pElements[3].textContent.includes("Additional Tags Category"))) {
                 return false; // Terminate if "Additional Tags Category" is found
             }
 
