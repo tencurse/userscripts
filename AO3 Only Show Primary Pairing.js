@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Ao3 Only Show Primary Pairing (Auto)
 // @namespace    tencurse
-// @version      1.10
+// @version      1.12
 // @description  Hides works where specified pairing isn't the first listed.
 // @author       tencurse
 // @match        *://archiveofourown.org/*
@@ -10,97 +10,88 @@
 // @license      MIT
 // ==/UserScript==
 
-/* START CONFIG */
-// enable auto-detection for primary characters. disabled by default
-const detectPrimaryCharacter = false;
+(async function () {
+    'use strict';
 
-// you want to see at least one of your relationships within this many relationship tags
-var relpad = 1;
-// you want to see at least one of your characters within this many character tags
-var charpad = 5;
+    // Configuration variables
+    const detectPrimaryCharacter = false;
+    const relpad = 1; // Minimum relationships to check
+    const charpad = 5; // Minimum characters to check
+    const relationships = []; // Relationship tags to check
+    const characters = []; // Character tags to check
 
-// MANUAL CONFIGURATION
-// add relationship/character tags inside quotation marks "", separated by commas
-var relationships = [];
-var characters = [];
+    const fandomLink = document.querySelector("h2.heading a")?.href;
+    const tagName = document.querySelector("h2.heading a")?.innerText;
 
-/* END CONFIG */
-
-(function ($) {
-  $("<style>")
-    .text(
-      ".workhide{border:1px solid rgb(221,221,221);margin:0.643em 0em;padding:0.429em 0.75em;height:29px;} .workhide .left{float:left;padding-top:5px;} .workhide .right{float:right}"
-    )
-    .appendTo($("head"));
-
-  var checkfandom = document.createElement("div");
-  var fandomlink = $("h2.heading a")[0].href;
-
-  var tagName = $("h2.heading a")[0].innerText;
-
-  // if tag is a relationship tag, add to relationships array
-  if (tagName.includes("/") || tagName.includes("&")) {
-    relationships.push(tagName);
-  } else if (detectPrimaryCharacter) {
-    // if not a ship tag, check if tag is a fandom tag
-    // below only checks the first fandom tag on the first work of the page
-    const fandomName = $("div.header.module > h5.fandoms > a.tag")[0].innerText;
-    // if tag is not the same as the fandom name
-    if (tagName != fandomName) {
-      characters.push(tagName);
-      // if tag is same as fandom name and character array has no value, terminate script
-    } else if (characters.length == 0) {
-      return;
-    }
-    // if character detection is false and both arrays are empty, terminate script
-  } else if (
-    !detectPrimaryCharacter &&
-    characters.length == 0 &&
-    relationships.length == 0
-  ) {
-    return;
-  }
-
-  fandomlink = fandomlink.slice(fandomlink.indexOf("tags"));
-  $(checkfandom).load("/" + fandomlink + " .parent", function () {
-    if ($("ul", checkfandom).text() == "No Fandom") {
-      return;
-    } else {
-      for (let i = 0; i < $(".index .blurb").length; i++) {
-        var tags = $(".index .blurb ul.tags")[i];
-        var reltags = $(".relationships", tags).slice(0, relpad);
-        var chartags = $(".characters", tags).slice(0, charpad);
-        var temprel = [];
-        var tempchar = [];
-        $(reltags).map(function () {
-          temprel.push(this.innerText);
-        });
-        $(chartags).map(function () {
-          tempchar.push(this.innerText);
-        });
-        var relmatch = temprel.filter(function (n) {
-          return relationships.indexOf(n) != -1;
-        });
-        var charmatch = tempchar.filter(function (n) {
-          return characters.indexOf(n) != -1;
-        });
-        if (relmatch.length === 0 && charmatch.length === 0) {
-          var work = $(".index .blurb")[i];
-          work.style.display = "none";
-          var button = document.createElement("div");
-          button.setAttribute("class", "workhide");
-          button.innerHTML =
-            '<div class="left">This work does not prioritize your preferred tags.</div><div class="right"><button type="button" class="showwork">Show Work</button></div>';
-          $(work).after(button);
+    // Check if the tag is a relationship tag
+    if (tagName.includes("/") || tagName.includes("&")) {
+        relationships.push(tagName);
+    } else if (detectPrimaryCharacter) {
+        const fandomName = document.querySelector("div.header.module > h5.fandoms > a.tag")?.innerText;
+        if (tagName !== fandomName) {
+            characters.push(tagName);
         }
-      }
-      $(document).ready(function () {
-        $(".showwork").click(function () {
-          var blurb = $(this).parents(".workhide").prev()[0];
-          $(blurb).removeAttr("style");
-          $(this).parents(".workhide").remove();
-        });
-      });
     }
-  });
-})(window.jQuery);
+
+    // Early exit if no relevant tags are provided
+    if (!relationships.length && !characters.length) {
+        return;
+    }
+
+    const processedFandomLink = fandomLink?.slice(fandomLink.indexOf("tags"));
+
+    // Fetch the fandom page
+    const fandomData = await fetchFandomData(processedFandomLink);
+    if (!fandomData) return; // Early exit if no fandom
+
+    // Now perform the DOM manipulation
+    processTags(relationships, characters);
+
+    // Function to fetch fandom data
+    async function fetchFandomData(link) {
+        try {
+            const response = await fetch("/" + link + " .parent");
+            const html = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, "text/html");
+            const ul = doc.querySelector("ul");
+
+            // Check if there is a fandom
+            return ul && ul.textContent.trim() !== "No Fandom";
+        } catch (error) {
+            console.error('Error fetching fandom data:', error);
+            return false; // Indicate failure
+        }
+    }
+
+    // Function to manipulate the DOM based on fetched fandom data
+    function processTags(relationships, characters) {
+        const blurbs = document.querySelectorAll(".index .blurb");
+        blurbs.forEach((work) => {
+            const tags = work.querySelector("ul.tags");
+            const relTags = tags.querySelectorAll(".relationships li").length > relpad;
+            const charTags = tags.querySelectorAll(".characters li").length > charpad;
+
+            const relMatch = Array.from(tags.querySelectorAll(".relationships li")).some(li => relationships.includes(li.innerText));
+            const charMatch = Array.from(tags.querySelectorAll(".characters li")).some(li => characters.includes(li.innerText));
+
+            if (!relMatch && !charMatch) {
+                work.style.display = "none";
+                const button = document.createElement("div");
+                button.setAttribute("class", "workhide");
+                button.innerHTML =
+                    '<div class="left">This work does not prioritize your preferred tags.</div><div class="right"><button type="button" class="showwork">Show Work</button></div>';
+                work.after(button);
+            }
+        });
+
+        // Show work button functionality
+        document.addEventListener('click', function (event) {
+            if (event.target.classList.contains('showwork')) {
+                const blurb = event.target.closest(".workhide").previousElementSibling;
+                blurb.style.display = ''; // Show the work
+                event.target.closest(".workhide").remove(); // Remove the button
+            }
+        });
+    }
+})();
