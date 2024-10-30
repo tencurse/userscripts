@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Ao3 Only Show Primary Pairing (Auto)
 // @namespace    tencurse
-// @version      1.12
+// @version      1.13
 // @description  Hides works where specified pairing isn't the first listed.
 // @author       tencurse
 // @match        *://archiveofourown.org/*
@@ -10,32 +10,51 @@
 // @license      MIT
 // ==/UserScript==
 
+/* START CONFIG */
+const detectPrimaryCharacter = false; // enable auto-detection for primary characters
+const relpad = 1; // at least one relationship within this many relationship tags
+const charpad = 5; // at least one character within this many character tags
+
+// MANUAL CONFIGURATION
+const relationships = []; // add relationship tags here
+const characters = []; // add character tags here
+/* END CONFIG */
+
 (async function () {
-    'use strict';
+    const style = document.createElement("style");
+    style.textContent = `
+        .workhide {
+            border: 1px solid rgb(221, 221, 221);
+            margin: 0.643em 0em;
+            padding: 0.429em 0.75em;
+            height: 29px;
+        }
+        .workhide .left {
+            float: left;
+            padding-top: 5px;
+        }
+        .workhide .right {
+            float: right;
+        }
+    `;
+    document.head.appendChild(style);
 
-    // Configuration variables
-    const detectPrimaryCharacter = false;
-    const relpad = 1; // Minimum relationships to check
-    const charpad = 5; // Minimum characters to check
-    const relationships = []; // Relationship tags to check
-    const characters = []; // Character tags to check
+    const fandomLinkElement = document.querySelector("h2.heading a");
+    const fandomLink = fandomLinkElement.href;
+    const tagName = fandomLinkElement.innerText;
 
-    const fandomLink = document.querySelector("h2.heading a")?.href;
-    const tagName = document.querySelector("h2.heading a")?.innerText;
-
-    // Check if the tag is a relationship tag
+    // Determine if the tag is a relationship tag or character tag
     if (tagName.includes("/") || tagName.includes("&")) {
         relationships.push(tagName);
     } else if (detectPrimaryCharacter) {
-        const fandomName = document.querySelector("div.header.module > h5.fandoms > a.tag")?.innerText;
+        const fandomName = document.querySelector("div.header.module > h5.fandoms > a.tag").innerText;
         if (tagName !== fandomName) {
             characters.push(tagName);
         }
     }
 
-    // Early exit if no relevant tags are provided
-    if (!relationships.length && !characters.length) {
-        return;
+    if (!detectPrimaryCharacter && !characters.length && !relationships.length) {
+        return; // Terminate if no relevant tags are provided
     }
 
     const processedFandomLink = fandomLink?.slice(fandomLink.indexOf("tags"));
@@ -43,9 +62,6 @@
     // Fetch the fandom page
     const fandomData = await fetchFandomData(processedFandomLink);
     if (!fandomData) return; // Early exit if no fandom
-
-    // Now perform the DOM manipulation
-    processTags(relationships, characters);
 
     // Function to fetch fandom data
     async function fetchFandomData(link) {
@@ -64,34 +80,37 @@
         }
     }
 
-    // Function to manipulate the DOM based on fetched fandom data
-    function processTags(relationships, characters) {
-        const blurbs = document.querySelectorAll(".index .blurb");
-        blurbs.forEach((work) => {
-            const tags = work.querySelector("ul.tags");
-            const relTags = tags.querySelectorAll(".relationships li").length > relpad;
-            const charTags = tags.querySelectorAll(".characters li").length > charpad;
+    // Directly work with the existing blurbs in the DOM
+    const blurbs = document.querySelectorAll(".index .blurb");
+    blurbs.forEach((blurb) => {
+        const tags = blurb.querySelector("ul.tags");
+        const relTags = Array.from(tags.querySelectorAll(".relationships")).slice(0, relpad);
+        const charTags = Array.from(tags.querySelectorAll(".characters")).slice(0, charpad);
 
-            const relMatch = Array.from(tags.querySelectorAll(".relationships li")).some(li => relationships.includes(li.innerText));
-            const charMatch = Array.from(tags.querySelectorAll(".characters li")).some(li => characters.includes(li.innerText));
+        const temprel = relTags.map(el => el.innerText);
+        const tempchar = charTags.map(el => el.innerText);
 
-            if (!relMatch && !charMatch) {
-                work.style.display = "none";
-                const button = document.createElement("div");
-                button.setAttribute("class", "workhide");
-                button.innerHTML =
-                    '<div class="left">This work does not prioritize your preferred tags.</div><div class="right"><button type="button" class="showwork">Show Work</button></div>';
-                work.after(button);
-            }
-        });
+        const relmatch = temprel.filter(tag => relationships.includes(tag));
+        const charmatch = tempchar.filter(tag => characters.includes(tag));
 
-        // Show work button functionality
-        document.addEventListener('click', function (event) {
-            if (event.target.classList.contains('showwork')) {
-                const blurb = event.target.closest(".workhide").previousElementSibling;
-                blurb.style.display = ''; // Show the work
-                event.target.closest(".workhide").remove(); // Remove the button
-            }
-        });
-    }
+        if (!relmatch.length && !charmatch.length) {
+            blurb.style.display = "none"; // Hide the work
+            const buttonDiv = document.createElement("div");
+            buttonDiv.className = "workhide";
+            buttonDiv.innerHTML = `
+                <div class="left">This work does not prioritize your preferred tags.</div>
+                <div class="right"><button type="button" class="showwork">Show Work</button></div>
+            `;
+            blurb.insertAdjacentElement("afterend", buttonDiv);
+        }
+    });
+
+    // Show work functionality
+    document.addEventListener("click", function (event) {
+        if (event.target.matches(".showwork")) {
+            const blurb = event.target.closest(".workhide").previousElementSibling;
+            blurb.style.display = ""; // Show the work
+            event.target.closest(".workhide").remove();
+        }
+    });
 })();
