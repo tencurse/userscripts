@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Ao3 Only Show Primary Pairing (Auto)
 // @namespace    tencurse
-// @version      1.13
+// @version      1.15
 // @description  Hides works where specified pairing isn't the first listed.
 // @author       tencurse
 // @match        *://archiveofourown.org/*
@@ -11,13 +11,13 @@
 // ==/UserScript==
 
 /* START CONFIG */
-const detectPrimaryCharacter = false; // enable auto-detection for primary characters
-const relpad = 1; // at least one relationship within this many relationship tags
-const charpad = 5; // at least one character within this many character tags
+const detectPrimaryCharacter = false; // Enable auto-detection for primary characters
+const relpad = 1; // At least one relationship within this many relationship tags
+const charpad = 5; // At least one character within this many character tags
 
 // MANUAL CONFIGURATION
-const relationships = []; // add relationship tags here
-const characters = []; // add character tags here
+const relationships = []; // Add relationship tags here
+const characters = []; // Add character tags here
 /* END CONFIG */
 
 (async function () {
@@ -53,32 +53,32 @@ const characters = []; // add character tags here
         }
     }
 
+    // Create variations of the tag without parentheses
+    const tagWithoutParentheses = tagName.replace(/\s*\(.*?\)\s*/g, '').trim();
+    if (tagWithoutParentheses && !relationships.includes(tagWithoutParentheses)) {
+        relationships.push(tagWithoutParentheses);
+    }
+
+    // Check for characters with the same logic
+    const isCharacterTag = !tagName.includes("/") && !tagName.includes("&");
+    if (isCharacterTag) {
+        if (!characters.includes(tagName)) {
+            characters.push(tagName);
+        }
+        if (tagWithoutParentheses && !characters.includes(tagWithoutParentheses)) {
+            characters.push(tagWithoutParentheses);
+        }
+    }
+
     if (!detectPrimaryCharacter && !characters.length && !relationships.length) {
         return; // Terminate if no relevant tags are provided
     }
 
-    const processedFandomLink = fandomLink?.slice(fandomLink.indexOf("tags"));
+    const processedFandomLink = fandomLink.slice(fandomLink.indexOf("tags"));
 
     // Fetch the fandom page
     const fandomData = await fetchFandomData(processedFandomLink);
     if (!fandomData) return; // Early exit if no fandom
-
-    // Function to fetch fandom data
-    async function fetchFandomData(link) {
-        try {
-            const response = await fetch("/" + link + " .parent");
-            const html = await response.text();
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, "text/html");
-            const ul = doc.querySelector("ul");
-
-            // Check if there is a fandom
-            return ul && ul.textContent.trim() !== "No Fandom";
-        } catch (error) {
-            console.error('Error fetching fandom data:', error);
-            return false; // Indicate failure
-        }
-    }
 
     // Directly work with the existing blurbs in the DOM
     const blurbs = document.querySelectorAll(".index .blurb");
@@ -90,8 +90,8 @@ const characters = []; // add character tags here
         const temprel = relTags.map(el => el.innerText);
         const tempchar = charTags.map(el => el.innerText);
 
-        const relmatch = temprel.filter(tag => relationships.includes(tag));
-        const charmatch = tempchar.filter(tag => characters.includes(tag));
+        const relmatch = temprel.filter(tag => relationships.includes(tag) || tag === tagWithoutParentheses);
+        const charmatch = tempchar.filter(tag => characters.includes(tag) || tag === tagWithoutParentheses);
 
         if (!relmatch.length && !charmatch.length) {
             blurb.style.display = "none"; // Hide the work
@@ -113,4 +113,21 @@ const characters = []; // add character tags here
             event.target.closest(".workhide").remove();
         }
     });
+
+    // Function to fetch fandom data
+    async function fetchFandomData(link) {
+        try {
+            const response = await fetch("/" + link + " .parent");
+            const html = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, "text/html");
+            const ul = doc.querySelector("ul");
+
+            // Check if there is a fandom
+            return ul && ul.textContent.trim() !== "No Fandom";
+        } catch (error) {
+            console.error('Error fetching fandom data:', error);
+            return false; // Indicate failure
+        }
+    }
 })();
