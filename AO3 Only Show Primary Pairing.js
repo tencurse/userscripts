@@ -2,7 +2,7 @@
 // @name         Ao3 Only Show Primary Pairing (Auto)
 // @namespace    tencurse
 // @version      1.24
-// @description  Hides works where specified pairing isn't the first listed, with error handling and conditional checks for <p> elements.
+// @description  Hides works where specified pairing isn't the first listed
 // @author       tencurse
 // @match        *://archiveofourown.org/*
 // @match        *://www.archiveofourown.org/*
