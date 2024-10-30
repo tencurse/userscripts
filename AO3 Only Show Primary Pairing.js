@@ -46,8 +46,7 @@ const characters = []; // Add character tags here
     // Determine if the tag is a relationship tag or character tag
     const isCharacterTag = !(tagName.includes("/") || tagName.includes("&"));
 
-    if (isCharacterTag) {
-        if (detectPrimaryCharacter) {
+    if (isCharacterTag && detectPrimaryCharacter) {
             characters.push(tagName); // Only add to characters if detection is enabled
         }
     } else {
