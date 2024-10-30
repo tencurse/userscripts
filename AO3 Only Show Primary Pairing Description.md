@@ -18,7 +18,7 @@ To work with Neeve's original script behaviour of manually adding tags, see [Adv
 
 ### Primary characters
 
-If enabled, the script will only display works that includes the current character tag in the first five tags. To change this behaviour, modify the value of the variable `charpad`.
+The script will only display works that includes the current character tag in the first five tags. To change this behaviour, modify the value of the variable `charpad`.
 
 To disable this feature, change the value of  the variable `detectPrimaryCharacter` from `true` to `false`.
 
