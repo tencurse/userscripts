@@ -48,7 +48,7 @@ See Neeve's original script [here](https://greasyfork.org/en/scripts/377386-ao3-
 
 ## To do
 
-- [ ] Rewrite code to use vanilla JS, no jQuery
+- [x] Rewrite code to use vanilla JS, no jQuery
 - [ ] Edit primary ship to recognize ones that don't include the fandom name
 - [ ] Edit primary characters to recognize ones that don't include the fandom name
 - [ ] Use local storage + add UI in AO3 to remove the need for manual code editing
