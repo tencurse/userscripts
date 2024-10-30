@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Ao3 Only Show Primary Pairing (Auto)
 // @namespace    tencurse
-// @version      1.20
+// @version      1.21
 // @description  Hides works where specified pairing isn't the first listed.
 // @author       tencurse
 // @match        *://archiveofourown.org/*
@@ -46,8 +46,10 @@ const characters = []; // Add character tags here
     // Determine if the tag is a relationship tag or character tag
     const isCharacterTag = !(tagName.includes("/") || tagName.includes("&"));
 
-    if (isCharacterTag && detectPrimaryCharacter) {
-        characters.push(tagName);
+    if (isCharacterTag) {
+        if (detectPrimaryCharacter) {
+            characters.push(tagName); // Only add to characters if detection is enabled
+        }
     } else {
         relationships.push(tagName);
     }
@@ -103,6 +105,12 @@ const characters = []; // Add character tags here
             const html = await response.text();
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, "text/html");
+
+            // Check if the third <p> tag contains "Additional Tags Category"
+            const pElements = doc.querySelectorAll("p");
+            if (pElements[2] && pElements[2].textContent.includes("Additional Tags Category")) {
+                return false; // Terminate if "Additional Tags Category" is found
+            }
 
             // Attempt to find the specified <ul> element with all classes
             let ulElements = doc.querySelectorAll("ul.tags.commas.index.group");
