@@ -2,6 +2,8 @@
 
 As per the title, this script will show works that have the primary ship in the first tag. The difference between this and Neeve's script is that it automatically detects the primary pairing, little to no configuration needed. (See details below on the specifics.)
 
+**New in v1.2:** The script now works with tag synonyms as well as subtags! (Looking at you, Dragon Age ship subtags...) Primary character tag detection is also enabled by default.
+
 ## How it works
 
 ### Primary pairing
@@ -16,11 +18,9 @@ To work with Neeve's original script behaviour of manually adding tags, see [Adv
 
 ### Primary characters
 
-**This feature is experimental and disabled by default.**
-
 If enabled, the script will only display works that includes the current character tag in the first five tags. To change this behaviour, modify the value of the variable `charpad`.
 
-To enable this feature, change the value of  the variable `detectPrimaryCharacter` from `false` to `true`.
+To disable this feature, change the value of  the variable `detectPrimaryCharacter` from `true` to `false`.
 
 To work with Neeve's original script behaviour of manually adding tags, see [Advanced configuration](#advanced-configuration) section below.
 
