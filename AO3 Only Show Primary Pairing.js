@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Ao3 Only Show Primary Pairing (Auto)
 // @namespace    tencurse
-// @version      1.15
+// @version      1.19
 // @description  Hides works where specified pairing isn't the first listed.
 // @author       tencurse
 // @match        *://archiveofourown.org/*
@@ -44,30 +44,12 @@ const characters = []; // Add character tags here
     const tagName = fandomLinkElement.innerText;
 
     // Determine if the tag is a relationship tag or character tag
-    if (tagName.includes("/") || tagName.includes("&")) {
+    const isCharacterTag = !(tagName.includes("/") || tagName.includes("&"));
+
+    if (isCharacterTag && detectPrimaryCharacter) {
+        characters.push(tagName);
+    } else {
         relationships.push(tagName);
-    } else if (detectPrimaryCharacter) {
-        const fandomName = document.querySelector("div.header.module > h5.fandoms > a.tag").innerText;
-        if (tagName !== fandomName) {
-            characters.push(tagName);
-        }
-    }
-
-    // Create variations of the tag without parentheses
-    const tagWithoutParentheses = tagName.replace(/\s*\(.*?\)\s*/g, '').trim();
-    if (tagWithoutParentheses && !relationships.includes(tagWithoutParentheses)) {
-        relationships.push(tagWithoutParentheses);
-    }
-
-    // Check for characters with the same logic
-    const isCharacterTag = !tagName.includes("/") && !tagName.includes("&");
-    if (isCharacterTag) {
-        if (!characters.includes(tagName)) {
-            characters.push(tagName);
-        }
-        if (tagWithoutParentheses && !characters.includes(tagWithoutParentheses)) {
-            characters.push(tagWithoutParentheses);
-        }
     }
 
     if (!detectPrimaryCharacter && !characters.length && !relationships.length) {
@@ -76,9 +58,9 @@ const characters = []; // Add character tags here
 
     const processedFandomLink = fandomLink.slice(fandomLink.indexOf("tags"));
 
-    // Fetch the fandom page
-    const fandomData = await fetchFandomData(processedFandomLink);
-    if (!fandomData) return; // Early exit if no fandom
+    // Fetch the fandom page and check for synonyms
+    const fandomDataAvailable = await fetchFandomData(processedFandomLink, isCharacterTag);
+    if (!fandomDataAvailable) return; // Early exit if no fandom
 
     // Directly work with the existing blurbs in the DOM
     const blurbs = document.querySelectorAll(".index .blurb");
@@ -90,8 +72,8 @@ const characters = []; // Add character tags here
         const temprel = relTags.map(el => el.innerText);
         const tempchar = charTags.map(el => el.innerText);
 
-        const relmatch = temprel.filter(tag => relationships.includes(tag) || tag === tagWithoutParentheses);
-        const charmatch = tempchar.filter(tag => characters.includes(tag) || tag === tagWithoutParentheses);
+        const relmatch = temprel.filter(tag => relationships.includes(tag));
+        const charmatch = tempchar.filter(tag => detectPrimaryCharacter ? characters.includes(tag) : false);
 
         if (!relmatch.length && !charmatch.length) {
             blurb.style.display = "none"; // Hide the work
@@ -114,17 +96,50 @@ const characters = []; // Add character tags here
         }
     });
 
-    // Function to fetch fandom data
-    async function fetchFandomData(link) {
+    // Function to fetch fandom data and check for synonyms
+    async function fetchFandomData(link, isCharacterTag) {
         try {
             const response = await fetch("/" + link + " .parent");
             const html = await response.text();
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, "text/html");
-            const ul = doc.querySelector("ul");
 
-            // Check if there is a fandom
-            return ul && ul.textContent.trim() !== "No Fandom";
+            // Attempt to find the specified <ul> element with all classes
+            let ulElements = doc.querySelectorAll("ul.tags.commas.index.group");
+            if (!ulElements[0] || ulElements[0].textContent.trim() === "No Fandom") {
+                return false; // Early exit if no fandom
+            }
+
+            // Check for synonyms in the second <ul> if present
+            if (ulElements[1]) {
+                ulElements[1].querySelectorAll("li").forEach(li => {
+                    const synonym = li.textContent.trim();
+                    if (synonym) {
+                        if (isCharacterTag && detectPrimaryCharacter) {
+                            characters.push(synonym);
+                        } else if (!isCharacterTag) {
+                            relationships.push(synonym);
+                        }
+                    }
+                });
+            }
+
+            // Check for additional synonyms in any nested "ul.tags.tree.index" elements
+            const treeElements = doc.querySelectorAll("ul.tags.tree.index");
+            treeElements.forEach((treeUl) => {
+                treeUl.querySelectorAll("li").forEach((li) => {
+                    const synonym = li.textContent.trim();
+                    if (synonym) {
+                        if (isCharacterTag && detectPrimaryCharacter) {
+                            characters.push(synonym);
+                        } else if (!isCharacterTag) {
+                            relationships.push(synonym);
+                        }
+                    }
+                });
+            });
+
+            return true; // Fandom data and synonyms processed successfully
         } catch (error) {
             console.error('Error fetching fandom data:', error);
             return false; // Indicate failure
