@@ -28,14 +28,9 @@ const characters = []; // Add character tags here
             border: 1px solid rgb(221, 221, 221);
             margin: 0.643em 0em;
             padding: 0.429em 0.75em;
-            height: 29px;
-        }
-        .workhide .left {
-            float: left;
-            padding-top: 5px;
-        }
-        .workhide .right {
-            float: right;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
     `;
     document.head.appendChild(style);
