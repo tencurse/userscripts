@@ -1,18 +1,20 @@
 // ==UserScript==
 // @name         Ao3 Only Show Primary Pairing (Auto)
 // @namespace    tencurse
-// @version      1.25
+// @version      1.26
 // @description  Hides works where specified pairing isn't the first listed
 // @author       tencurse
 // @match        *://archiveofourown.org/*
 // @match        *://www.archiveofourown.org/*
 // @grant        none
 // @license      MIT
+// @downloadURL https://update.greasyfork.org/scripts/484106/Ao3%20Only%20Show%20Primary%20Pairing%20%28Auto%29.user.js
+// @updateURL https://update.greasyfork.org/scripts/484106/Ao3%20Only%20Show%20Primary%20Pairing%20%28Auto%29.meta.js
 // ==/UserScript==
 
 /* START CONFIG */
 const detectPrimaryCharacter = true; // Enable auto-detection for primary characters
-const relpad = 1; // At least one relationship within this many relationship tags
+const relpad = 3; // At least one relationship within this many relationship tags
 const charpad = 5; // At least one character within this many character tags
 
 // MANUAL CONFIGURATION
@@ -25,13 +27,23 @@ const characters = []; // Add character tags here
     const style = document.createElement("style");
     style.textContent = `
         .workhide {
-            border: 1px solid rgb(221, 221, 221);
-            margin: 0.643em 0em;
-            padding: 0.429em 0.75em;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            font-size: 0.8em;
+            margin: 0.15em 0;
         }
+
+        [data-ospp-visibility="hide"] > :not(.header),
+        [data-ospp-visibility="hide"] > .header > :not(h4) { display: none!important; }
+
+        [data-ospp-visibility="hide"] > div.workhide { display: flex!important; }
+
+        [data-ospp-visibility="hide"] > .header,
+        [data-ospp-visibility="hide"] > .header > h4 {
+            margin: 0!important; min-height: auto; font-size: .9em; font-style: italic; }
+
+        [data-ospp-visibility="hide"] { opacity: .6; }
     `;
     document.head.appendChild(style);
 
@@ -68,23 +80,24 @@ const characters = []; // Add character tags here
         const charmatch = detectPrimaryCharacter && charTags.some(tag => characters.includes(tag));
 
         if (!relmatch && !charmatch) {
-            blurb.style.display = "none";
+            blurb.setAttribute("data-ospp-visibility", "hide");
             const buttonDiv = document.createElement("div");
             buttonDiv.className = "workhide";
             buttonDiv.innerHTML = `
-                <div class="left">This work does not prioritize your preferred tags.</div>
+                <div class="left">Your preferred tag is not prioritised in this work.</div>
                 <div class="right"><button type="button" class="showwork">Show Work</button></div>
             `;
-            blurb.insertAdjacentElement("afterend", buttonDiv);
+            blurb.insertAdjacentElement("beforeend", buttonDiv);
         }
     });
 
     // Show work functionality: removes the button after showing the work
     document.addEventListener("click", (event) => {
         if (event.target.matches(".showwork")) {
-            const blurb = event.target.closest(".workhide").previousElementSibling;
-            blurb.style.display = ""; // Show the work
-            event.target.closest(".workhide").remove(); // Remove the button
+            const blurb = event.target.closest(".blurb");
+            blurb.removeAttribute("data-ospp-visibility");
+            event.target.closest(".workhide").remove();
+            event.target.remove(); // Remove the button after showing the work
         }
     });
 
@@ -104,23 +117,23 @@ const characters = []; // Add character tags here
             }
 
             // Get synonyms from <ul> elements with specified classes
-            const synonymSources = [
-                ...doc.querySelectorAll("ul.tags.commas.index.group"),
-                ...doc.querySelectorAll("ul.tags.tree.index")
-            ];
+            const synonymSources = doc.querySelectorAll("ul.tags.commas.index.group, ul.tags.tree.index");
 
-            synonymSources.forEach((ul, index) => {
-                if (index === 0 && ul.textContent.trim() === "No Fandom") {
-                    return false; // Exit if no fandom
-                }
+            if (
+                synonymSources[0] &&
+                synonymSources[0].textContent.trim() === "No Fandom"
+            ) {
+                return false;
+            }
+
+            synonymSources.forEach((ul) => {
                 ul.querySelectorAll("li").forEach(li => {
                     const synonym = li.textContent.trim();
-                    if (synonym) {
-                        if (isCharacterTag && detectPrimaryCharacter) {
-                            characters.push(synonym);
-                        } else if (!isCharacterTag) {
-                            relationships.push(synonym);
-                        }
+                    if (!synonym) return;
+                    if (isCharacterTag && detectPrimaryCharacter) {
+                        if (!characters.includes(synonym)) characters.push(synonym);
+                    } else if (!isCharacterTag) {
+                        if (!relationships.includes(synonym)) relationships.push(synonym);
                     }
                 });
             });
