@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Ao3 Only Show Primary Pairing (Auto)
 // @namespace    tencurse
-// @version      1.26
+// @version      1.27
 // @description  Hides works where specified pairing isn't the first listed
 // @author       tencurse
 // @match        *://archiveofourown.org/*
@@ -32,18 +32,19 @@ const characters = []; // Add character tags here
             align-items: center;
             font-size: 0.8em;
             margin: 0.15em 0;
+            width: 100%;
         }
 
-        [data-ospp-visibility="hide"] > :not(.header),
-        [data-ospp-visibility="hide"] > .header > :not(h4) { display: none!important; }
+        [data-ospp-visibility="false"] > :not(.header),
+        [data-ospp-visibility="false"] > .header > :not(h4) { display: none!important; }
 
-        [data-ospp-visibility="hide"] > div.workhide { display: flex!important; }
+        [data-ospp-visibility="false"] > div.workhide { display: flex!important; }
 
-        [data-ospp-visibility="hide"] > .header,
-        [data-ospp-visibility="hide"] > .header > h4 {
+        [data-ospp-visibility="false"] > .header,
+        [data-ospp-visibility="false"] > .header > h4 {
             margin: 0!important; min-height: auto; font-size: .9em; font-style: italic; }
 
-        [data-ospp-visibility="hide"] { opacity: .6; }
+        [data-ospp-visibility="false"] { opacity: .6; }
     `;
     document.head.appendChild(style);
 
@@ -80,7 +81,7 @@ const characters = []; // Add character tags here
         const charmatch = detectPrimaryCharacter && charTags.some(tag => characters.includes(tag));
 
         if (!relmatch && !charmatch) {
-            blurb.setAttribute("data-ospp-visibility", "hide");
+            blurb.setAttribute("data-ospp-visibility", "false");
             const buttonDiv = document.createElement("div");
             buttonDiv.className = "workhide";
             buttonDiv.innerHTML = `
@@ -95,9 +96,16 @@ const characters = []; // Add character tags here
     document.addEventListener("click", (event) => {
         if (event.target.matches(".showwork")) {
             const blurb = event.target.closest(".blurb");
-            blurb.removeAttribute("data-ospp-visibility");
-            event.target.closest(".workhide").remove();
-            event.target.remove(); // Remove the button after showing the work
+            const button = event.target;
+            const isHidden = blurb.getAttribute("data-ospp-visibility") === "false";
+
+            if (isHidden) {
+                blurb.setAttribute("data-ospp-visibility", "true");
+                button.textContent = "Hide Work";
+            } else {
+                blurb.setAttribute("data-ospp-visibility", "false");
+                button.textContent = "Show Work";
+            }
         }
     });
 
