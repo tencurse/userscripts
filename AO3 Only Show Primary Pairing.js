@@ -127,23 +127,11 @@ const characters = []; // Add character tags here
             // Get synonyms from <ul> elements with specified classes
             const synonymSources = doc.querySelectorAll("ul.tags.commas.index.group, ul.tags.tree.index");
 
-            if (
-                synonymSources[0] &&
-                synonymSources[0].textContent.trim() === "No Fandom"
-            ) {
-                return false;
-            }
-
-            synonymSources.forEach((ul) => {
-                ul.querySelectorAll("li").forEach(li => {
-                    const synonym = li.textContent.trim();
-                    if (!synonym) return;
-                    if (isCharacterTag && detectPrimaryCharacter) {
-                        if (!characters.includes(synonym)) characters.push(synonym);
-                    } else if (!isCharacterTag) {
-                        if (!relationships.includes(synonym)) relationships.push(synonym);
-                    }
-                });
+            synonymSources.forEach((ul, index) => {
+                if (index == 0) return; // Always skip the first <ul> since it contains parent tags
+                ul.querySelectorAll(":scope > li").forEach(li => {
+                    processListItem(li, isCharacterTag);
+                })
             });
 
             return true;
@@ -152,4 +140,19 @@ const characters = []; // Add character tags here
             return false;
         }
     }
+
+    function processListItem(li, isCharacterTag) {
+        const synonym = li.querySelector('a').textContent.trim();
+        const targetArray = isCharacterTag && detectPrimaryCharacter ? characters : relationships;
+        if (!targetArray.includes(synonym)) targetArray.push(synonym);
+
+        // Process any nested UL's list items
+        const nestedUL = li.querySelector(':scope > ul');
+        if (nestedUL) {
+            for (const nested of nestedUL.children) {
+                processListItem(nested, isCharacterTag);
+            }
+        }
+    }
+
 })();
