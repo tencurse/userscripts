@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Ao3 Only Show Primary Pairing (Auto)
 // @namespace    tencurse
-// @version      1.28
+// @version      1.29
 // @description  Hides works where specified pairing isn't the first listed
 // @author       tencurse
 // @match        *://archiveofourown.org/*
@@ -14,7 +14,7 @@
 
 /* START CONFIG */
 const detectPrimaryCharacter = true; // Enable auto-detection for primary characters
-const relpad = 3; // At least one relationship within this many relationship tags
+const relpad = 1; // At least one relationship within this many relationship tags
 const charpad = 5; // At least one character within this many character tags
 
 // MANUAL CONFIGURATION
